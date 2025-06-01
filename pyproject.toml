@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "connectivity-log-analyzer"
+version = "0.1.0"
+description = "A tool to analyze cellular connectivity logs and generate statistical reports"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+packages = [{include = "connectivity_analyzer", from = "src"}]  # Actualizado para usar src/
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pandas = "^2.1.0"
+numpy = "^1.24.3"
+matplotlib = "^3.7.2"
+seaborn = "^0.12.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+analyze-connectivity = "scripts.analyze_log:main"  # Actualizado para usar el nuevo script
