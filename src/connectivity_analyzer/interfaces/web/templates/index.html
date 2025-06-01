@@ -993,6 +993,7 @@
 
         // Función para renderizar gráficos solo si los datos están disponibles
         function renderGraphs() {
+            {% if report %}
             const report = {{ report|tojson|safe }};
             
             // Gráfico de Serie Temporal
@@ -1127,10 +1128,21 @@
                     }
                 });
             }
+            {% endif %}
         }
 
         // Renderizar los gráficos cuando el documento esté listo
         document.addEventListener('DOMContentLoaded', renderGraphs);
     </script>
+
+    <!-- Footer -->
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container text-center">
+            <a href="https://github.com/NicoRiquelmeCTI/telit-logs-analyzer" target="_blank" class="text-decoration-none">
+                <i class="bi bi-github" style="font-size: 1.5rem;"></i>
+                <span class="ms-2">Hecho con 😴 por Nico Riquelme</span>
+            </a>
+        </div>
+    </footer>
 </body>
 </html> 
