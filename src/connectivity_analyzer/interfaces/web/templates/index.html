@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connectivity Analyzer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .result-section {
+            display: none;
+        }
+        .result-section.show {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h1 class="card-title text-center mb-4">Connectivity Analyzer</h1>
+                        
+                        {% if error %}
+                        <div class="alert alert-danger" role="alert">
+                            {{ error }}
+                        </div>
+                        {% endif %}
+
+                        <form action="/analyze" method="post" enctype="multipart/form-data">
+                            <div class="mb-4">
+                                <label for="log_text" class="form-label">Paste Log Text</label>
+                                <textarea class="form-control" id="log_text" name="log_text" rows="5" placeholder="Paste your log text here..."></textarea>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="log_file" class="form-label">Or Upload Log File</label>
+                                <input type="file" class="form-control" id="log_file" name="log_file" accept=".log,.txt">
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search"></i> Analyze
+                                </button>
+                            </div>
+                        </form>
+
+                        {% if report %}
+                        <div class="result-section show mt-4">
+                            <h2 class="h4 mb-3">Analysis Results</h2>
+                            
+                            <!-- Signal Quality -->
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h3 class="h5 mb-0">Signal Quality</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Metric</th>
+                                                    <th>Mean</th>
+                                                    <th>Std</th>
+                                                    <th>Min</th>
+                                                    <th>Max</th>
+                                                    <th>Median</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for metric, values in report.signal_quality.items() %}
+                                                <tr>
+                                                    <td>{{ metric.upper() }}</td>
+                                                    <td>{{ "%.2f"|format(values.mean) }}</td>
+                                                    <td>{{ "%.2f"|format(values.std) }}</td>
+                                                    <td>{{ "%.2f"|format(values.min) }}</td>
+                                                    <td>{{ "%.2f"|format(values.max) }}</td>
+                                                    <td>{{ "%.2f"|format(values.median) }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Network Info -->
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h3 class="h5 mb-0">Network Information</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        {% for key, value in report.network_info.items() %}
+                                        <div class="col-md-6 mb-2">
+                                            <strong>{{ key|replace('_', ' ')|title }}:</strong> {{ value }}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Connection State -->
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h3 class="h5 mb-0">Connection State</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        {% for key, value in report.connection_state.items() %}
+                                        <div class="col-md-6 mb-2">
+                                            <strong>{{ key|replace('_', ' ')|title }}:</strong> {{ value }}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Time Range -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="h5 mb-0">Time Range</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <strong>Start:</strong> {{ report.time_range.start }}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <strong>End:</strong> {{ report.time_range.end }}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <strong>Duration:</strong> {{ "%.2f"|format(report.time_range.duration_minutes) }} minutes
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
