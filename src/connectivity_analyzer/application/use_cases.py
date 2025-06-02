@@ -3,6 +3,7 @@ import numpy as np
 from typing import Dict, Any
 from connectivity_analyzer.domain.repositories import ConnectivityRepository
 from connectivity_analyzer.domain.models import ConnectivityData
+from pathlib import Path
 
 class GenerateConnectivityReportUseCase:
     def __init__(self, repository: ConnectivityRepository):
@@ -14,10 +15,30 @@ class GenerateConnectivityReportUseCase:
             return None
         return timestamp.isoformat()
 
+    def _extract_location_from_first_line(self, log_file_path: str) -> Dict[str, str]:
+        """Extract location information from the first line of the log file."""
+        try:
+            with open(log_file_path, 'r') as file:
+                first_line = file.readline().strip()
+                # Buscar patrones como "Módulo: X, Piso: Y" o similares
+                if 'Módulo:' in first_line and 'Piso:' in first_line:
+                    module = first_line.split('Módulo:')[1].split(',')[0].strip()
+                    floor = first_line.split('Piso:')[1].strip()
+                    return {
+                        'module': module,
+                        'floor': floor
+                    }
+        except Exception:
+            pass
+        return None
+
     def execute(self, log_file_path: str) -> Dict[str, Any]:
         try:
             # Get connectivity data
             connectivity_data = self.repository.get_connectivity_data(log_file_path)
+            
+            # Extract location information from first line
+            location = self._extract_location_from_first_line(log_file_path)
             
             # Convert to DataFrame
             df = pd.DataFrame([vars(data) for data in connectivity_data])
@@ -98,6 +119,10 @@ class GenerateConnectivityReportUseCase:
                     'service_domains': {str(k): int(v) for k, v in df['service_domain'].value_counts().to_dict().items()}
                 }
             }
+            
+            # Add location if found
+            if location:
+                stats['location'] = location
             
             return stats
             

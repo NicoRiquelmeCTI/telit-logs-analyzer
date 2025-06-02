@@ -84,6 +84,133 @@
         #chatMessages::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+
+        /* Estilos para impresión */
+        @media print {
+            body {
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+            }
+
+            .container {
+                width: 100% !important;
+                max-width: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            .card {
+                border: none !important;
+                box-shadow: none !important;
+                margin-bottom: 20px !important;
+                page-break-inside: avoid !important;
+            }
+
+            .card-body {
+                padding: 10px !important;
+            }
+
+            .row {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                margin: 0 !important;
+            }
+
+            .col-md-8 {
+                width: 100% !important;
+                max-width: 100% !important;
+                flex: 0 0 100% !important;
+                margin: 0 auto !important;
+            }
+
+            .col-md-6 {
+                width: 50% !important;
+                max-width: 50% !important;
+                flex: 0 0 50% !important;
+            }
+
+            .col-md-4 {
+                width: 33.333333% !important;
+                max-width: 33.333333% !important;
+                flex: 0 0 33.333333% !important;
+            }
+
+            .col-md-3 {
+                width: 25% !important;
+                max-width: 25% !important;
+                flex: 0 0 25% !important;
+            }
+
+            /* Ocultar elementos no necesarios en la impresión */
+            .btn-group,
+            #exportPDF,
+            .btn-close,
+            .footer,
+            form,
+            .alert-info.position-fixed {
+                display: none !important;
+            }
+
+            /* Ajustar gráficos para impresión */
+            .graph-container {
+                width: 100% !important;
+                height: auto !important;
+                margin: 20px 0 !important;
+            }
+
+            /* Ajustar tablas para impresión */
+            .table-responsive {
+                overflow: visible !important;
+                max-height: none !important;
+            }
+
+            .table {
+                width: 100% !important;
+                margin-bottom: 1rem !important;
+            }
+
+            /* Asegurar que los badges sean visibles */
+            .badge {
+                border: 1px solid #000 !important;
+                color: #000 !important;
+                background-color: transparent !important;
+            }
+
+            /* Ajustar márgenes y espaciado */
+            .mb-3, .mb-4 {
+                margin-bottom: 10px !important;
+            }
+
+            .mt-3, .mt-4 {
+                margin-top: 10px !important;
+            }
+
+            /* Asegurar que los textos sean legibles */
+            * {
+                color: #000 !important;
+                text-shadow: none !important;
+                box-shadow: none !important;
+            }
+
+            /* Ajustar el tamaño de fuente */
+            body {
+                font-size: 12pt !important;
+            }
+
+            h1, h2, h3, h4, h5, h6 {
+                font-size: 14pt !important;
+                margin-top: 15px !important;
+                margin-bottom: 10px !important;
+            }
+
+            /* Asegurar que las imágenes y gráficos se impriman correctamente */
+            img, svg {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -92,6 +219,9 @@
             <div class="col-md-8">
                 <div class="card shadow-sm">
                     <div class="card-body">
+                        <div class="text-center mb-4">
+                            <img src="https://enteldigital.cl/hubfs/raw_assets/public/Theme%20Entel%20Digital/images/logo_entel_para_prueba_azul.svg" alt="Logo" class="img-fluid" style="max-height: 80px; width: auto;">
+                        </div>
                         <h1 class="card-title text-center mb-4">Analizador de mediciones de conectividad narrowband</h1>
                         
                         {% if error %}
@@ -122,6 +252,37 @@
                         <div class="result-section show mt-4">
                             <h2 class="h4 mb-3">Resultados del Análisis</h2>
                             
+                            <!-- Información de Ubicación -->
+                            {% if report.location %}
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h3 class="h5 mb-0">Ubicación de la Medición</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-building me-2" style="font-size: 1.5rem;"></i>
+                                                <div>
+                                                    <h6 class="mb-1">Módulo</h6>
+                                                    <p class="mb-0">{{ report.location.module }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-layers me-2" style="font-size: 1.5rem;"></i>
+                                                <div>
+                                                    <h6 class="mb-1">Piso</h6>
+                                                    <p class="mb-0">{{ report.location.floor }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
                             <!-- Serie Temporal de Calidad de Señal -->
                             <div class="card mb-3">
                                 <div class="card-header">
@@ -130,6 +291,19 @@
                                 <div class="card-body">
                                     <div id="signalTimeSeries" class="graph-container"></div>
                                     
+                                    <!-- Div para mostrar el log original -->
+                                    <div id="logDetails" class="mt-3" style="display: none;">
+                                        <div class="card">
+                                            <div class="card-header d-flex justify-content-between align-items-center">
+                                                <h5 class="card-title h6 mb-0">Log Original</h5>
+                                                <button type="button" class="btn-close" onclick="document.getElementById('logDetails').style.display = 'none'"></button>
+                                            </div>
+                                            <div class="card-body">
+                                                <pre id="logContent" class="mb-0" style="max-height: 200px; overflow-y: auto;"></pre>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <!-- Definiciones técnicas -->
                                     <div class="mt-4">
                                         <h4 class="h6 mb-3">Definiciones Técnicas:</h4>
@@ -635,6 +809,9 @@
                                 <div class="card-header d-flex justify-content-between align-items-center">
                                     <h3 class="h5 mb-0">Exploración de Mediciones Individuales</h3>
                                     <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleView">
+                                            <i class="bi bi-table"></i> Cambiar Vista
+                                        </button>
                                         <button type="button" class="btn btn-sm btn-outline-secondary" id="exportCSV">
                                             <i class="bi bi-download"></i> Exportar CSV
                                         </button>
@@ -672,6 +849,7 @@
                                         </div>
                                     </div>
                                     <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                        <!-- Vista por métricas (por defecto) -->
                                         <table class="table table-sm table-hover" id="measurementsTable">
                                             <thead class="sticky-top bg-light">
                                                 <tr>
@@ -754,6 +932,74 @@
                                                 {% endfor %}
                                             </tbody>
                                         </table>
+
+                                        <!-- Vista por columnas (inicialmente oculta) -->
+                                        <table class="table table-sm table-hover" id="measurementsTableColumns" style="display: none;">
+                                            <thead class="sticky-top bg-light">
+                                                <tr>
+                                                    <th>Timestamp</th>
+                                                    <th>RSSI (dBm)</th>
+                                                    <th>RSRP (dBm)</th>
+                                                    <th>RSRQ (dB)</th>
+                                                    <th>SINR (dB)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for timestamp in report.time_series.timestamps %}
+                                                <tr>
+                                                    <td>{{ timestamp }}</td>
+                                                    <td>
+                                                        {% set rssi_value = report.time_series.rssi[loop.index0] %}
+                                                        {% if rssi_value > -65 %}
+                                                            <span class="badge bg-success">{{ "%.2f"|format(rssi_value) }}</span>
+                                                        {% elif rssi_value > -75 %}
+                                                            <span class="badge bg-primary">{{ "%.2f"|format(rssi_value) }}</span>
+                                                        {% elif rssi_value > -85 %}
+                                                            <span class="badge bg-warning text-dark">{{ "%.2f"|format(rssi_value) }}</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">{{ "%.2f"|format(rssi_value) }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% set rsrp_value = report.time_series.rsrp[loop.index0] %}
+                                                        {% if rsrp_value > -80 %}
+                                                            <span class="badge bg-success">{{ "%.2f"|format(rsrp_value) }}</span>
+                                                        {% elif rsrp_value > -90 %}
+                                                            <span class="badge bg-primary">{{ "%.2f"|format(rsrp_value) }}</span>
+                                                        {% elif rsrp_value > -100 %}
+                                                            <span class="badge bg-warning text-dark">{{ "%.2f"|format(rsrp_value) }}</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">{{ "%.2f"|format(rsrp_value) }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% set rsrq_value = report.time_series.rsrq[loop.index0] %}
+                                                        {% if rsrq_value > -10 %}
+                                                            <span class="badge bg-success">{{ "%.2f"|format(rsrq_value) }}</span>
+                                                        {% elif rsrq_value > -15 %}
+                                                            <span class="badge bg-primary">{{ "%.2f"|format(rsrq_value) }}</span>
+                                                        {% elif rsrq_value > -20 %}
+                                                            <span class="badge bg-warning text-dark">{{ "%.2f"|format(rsrq_value) }}</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">{{ "%.2f"|format(rsrq_value) }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% set sinr_value = report.time_series.sinr[loop.index0] %}
+                                                        {% if sinr_value > 13 %}
+                                                            <span class="badge bg-success">{{ "%.2f"|format(sinr_value) }}</span>
+                                                        {% elif sinr_value > 10 %}
+                                                            <span class="badge bg-primary">{{ "%.2f"|format(sinr_value) }}</span>
+                                                        {% elif sinr_value > 0 %}
+                                                            <span class="badge bg-warning text-dark">{{ "%.2f"|format(sinr_value) }}</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">{{ "%.2f"|format(sinr_value) }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
@@ -762,7 +1008,7 @@
                         <!-- Análisis de IA -->
                         <div class="card mt-4">
                             <div class="card-header">
-                                <h3 class="h5 mb-0">Análisis de IA</h3>
+                                <h3 class="h5 mb-0">Análisis con IA</h3>
                             </div>
                             <div class="card-body">
                                 <div id="aiAnalysis" class="mb-3">
@@ -969,7 +1215,7 @@
                         {% else %}
                         <div class="card mt-4">
                             <div class="card-header">
-                                <h3 class="h5 mb-0">Análisis de IA</h3>
+                                <h3 class="h5 mb-0">Análisis con IA</h3>
                             </div>
                             <div class="card-body">
                                 <div class="alert alert-info mb-0">
@@ -1013,7 +1259,8 @@
                         name: 'RSSI',
                         type: 'scatter',
                         mode: 'lines+markers',
-                        line: { color: '#1f77b4' }
+                        line: { color: '#1f77b4' },
+                        hovertemplate: 'RSSI: %{y:.2f} dBm<br>Timestamp: %{x}<extra></extra>'
                     },
                     {
                         x: timeSeriesData.timestamps,
@@ -1021,7 +1268,8 @@
                         name: 'RSRP',
                         type: 'scatter',
                         mode: 'lines+markers',
-                        line: { color: '#ff7f0e' }
+                        line: { color: '#ff7f0e' },
+                        hovertemplate: 'RSRP: %{y:.2f} dBm<br>Timestamp: %{x}<extra></extra>'
                     },
                     {
                         x: timeSeriesData.timestamps,
@@ -1029,7 +1277,8 @@
                         name: 'RSRQ',
                         type: 'scatter',
                         mode: 'lines+markers',
-                        line: { color: '#2ca02c' }
+                        line: { color: '#2ca02c' },
+                        hovertemplate: 'RSRQ: %{y:.2f} dB<br>Timestamp: %{x}<extra></extra>'
                     },
                     {
                         x: timeSeriesData.timestamps,
@@ -1037,7 +1286,8 @@
                         name: 'SINR',
                         type: 'scatter',
                         mode: 'lines+markers',
-                        line: { color: '#d62728' }
+                        line: { color: '#d62728' },
+                        hovertemplate: 'SINR: %{y:.2f} dB<br>Timestamp: %{x}<extra></extra>'
                     }
                 ];
 
@@ -1050,10 +1300,32 @@
                     legend: {
                         orientation: 'h',
                         y: -0.2
-                    }
+                    },
+                    hovermode: 'closest'
                 };
 
                 Plotly.newPlot('signalTimeSeries', timeSeriesTrace, timeSeriesLayout);
+
+                // Agregar evento de clic para mostrar el log
+                document.getElementById('signalTimeSeries').on('plotly_click', function(data) {
+                    const point = data.points[0];
+                    const timestamp = point.x;
+                    const index = timeSeriesData.timestamps.indexOf(timestamp);
+                    
+                    // Buscar el log correspondiente al timestamp
+                    const logDetails = document.getElementById('logDetails');
+                    const logContent = document.getElementById('logContent');
+                    
+                    // Aquí deberías tener acceso al log original
+                    // Por ahora, mostraremos un mensaje de ejemplo
+                    logContent.textContent = `Log para timestamp ${timestamp}:\n` +
+                        `RSSI: ${timeSeriesData.rssi[index].toFixed(2)} dBm\n` +
+                        `RSRP: ${timeSeriesData.rsrp[index].toFixed(2)} dBm\n` +
+                        `RSRQ: ${timeSeriesData.rsrq[index].toFixed(2)} dB\n` +
+                        `SINR: ${timeSeriesData.sinr[index].toFixed(2)} dB`;
+                    
+                    logDetails.style.display = 'block';
+                });
             }
 
             // Radar de Calidad de Señal
@@ -1130,6 +1402,197 @@
             }
             {% endif %}
         }
+
+        // Funcionalidad para la tabla de mediciones
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if report %}
+            const report = {{ report|tojson|safe }};
+            const tableByMetrics = document.getElementById('measurementsTable');
+            const tableByColumns = document.getElementById('measurementsTableColumns');
+            const searchInput = document.getElementById('searchInput');
+            const qualityFilter = document.getElementById('qualityFilter');
+            const metricFilter = document.getElementById('metricFilter');
+            const resetButton = document.getElementById('resetFilters');
+            const exportButton = document.getElementById('exportCSV');
+            const toggleViewButton = document.getElementById('toggleView');
+
+            let currentView = 'metrics'; // 'metrics' o 'columns'
+
+            // Función para cambiar entre vistas
+            function toggleView() {
+                if (currentView === 'metrics') {
+                    tableByMetrics.style.display = 'none';
+                    tableByColumns.style.display = '';
+                    currentView = 'columns';
+                    toggleViewButton.innerHTML = '<i class="bi bi-list"></i> Vista por Métricas';
+                } else {
+                    tableByMetrics.style.display = '';
+                    tableByColumns.style.display = 'none';
+                    currentView = 'metrics';
+                    toggleViewButton.innerHTML = '<i class="bi bi-table"></i> Vista por Columnas';
+                }
+                // Aplicar filtros a la vista actual
+                filterTable();
+            }
+
+            // Función para filtrar la tabla
+            function filterTable() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const selectedQuality = qualityFilter.value;
+                const selectedMetric = metricFilter.value;
+
+                if (currentView === 'metrics') {
+                    const rows = tableByMetrics.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+                    for (let row of rows) {
+                        const timestamp = row.cells[0].textContent.toLowerCase();
+                        const metric = row.cells[1].textContent;
+                        const quality = row.cells[3].textContent.trim();
+
+                        const matchesSearch = timestamp.includes(searchTerm);
+                        const matchesQuality = !selectedQuality || quality === selectedQuality;
+                        const matchesMetric = !selectedMetric || metric === selectedMetric;
+
+                        row.style.display = matchesSearch && matchesQuality && matchesMetric ? '' : 'none';
+                    }
+                } else {
+                    const rows = tableByColumns.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+                    for (let row of rows) {
+                        const timestamp = row.cells[0].textContent.toLowerCase();
+                        const matchesSearch = timestamp.includes(searchTerm);
+                        
+                        // Para la vista de columnas, verificamos la calidad de cada métrica
+                        const rssiBadge = row.cells[1].querySelector('.badge');
+                        const rsrpBadge = row.cells[2].querySelector('.badge');
+                        const rsrqBadge = row.cells[3].querySelector('.badge');
+                        const sinrBadge = row.cells[4].querySelector('.badge');
+
+                        const rssiQuality = rssiBadge.classList.contains('bg-success') ? 'Excelente' :
+                                          rssiBadge.classList.contains('bg-primary') ? 'Bueno' :
+                                          rssiBadge.classList.contains('bg-warning') ? 'Regular' : 'Pobre';
+
+                        const rsrpQuality = rsrpBadge.classList.contains('bg-success') ? 'Excelente' :
+                                          rsrpBadge.classList.contains('bg-primary') ? 'Bueno' :
+                                          rsrpBadge.classList.contains('bg-warning') ? 'Regular' : 'Pobre';
+
+                        const rsrqQuality = rsrqBadge.classList.contains('bg-success') ? 'Excelente' :
+                                          rsrqBadge.classList.contains('bg-primary') ? 'Bueno' :
+                                          rsrqBadge.classList.contains('bg-warning') ? 'Regular' : 'Pobre';
+
+                        const sinrQuality = sinrBadge.classList.contains('bg-success') ? 'Excelente' :
+                                          sinrBadge.classList.contains('bg-primary') ? 'Bueno' :
+                                          sinrBadge.classList.contains('bg-warning') ? 'Regular' : 'Pobre';
+
+                        const matchesQuality = !selectedQuality || 
+                            rssiQuality === selectedQuality || 
+                            rsrpQuality === selectedQuality || 
+                            rsrqQuality === selectedQuality || 
+                            sinrQuality === selectedQuality;
+
+                        const matchesMetric = !selectedMetric || 
+                            (selectedMetric === 'RSSI' && rssiBadge) ||
+                            (selectedMetric === 'RSRP' && rsrpBadge) ||
+                            (selectedMetric === 'RSRQ' && rsrqBadge) ||
+                            (selectedMetric === 'SINR' && sinrBadge);
+
+                        row.style.display = matchesSearch && matchesQuality && matchesMetric ? '' : 'none';
+                    }
+                }
+            }
+
+            // Función para exportar a CSV
+            function exportToCSV() {
+                const table = currentView === 'metrics' ? tableByMetrics : tableByColumns;
+                const rows = Array.from(table.getElementsByTagName('tbody')[0].getElementsByTagName('tr'));
+                const visibleRows = rows.filter(row => row.style.display !== 'none');
+                
+                let headers, csvContent;
+                
+                if (currentView === 'metrics') {
+                    headers = ['Timestamp', 'Métrica', 'Valor', 'Calidad'];
+                    csvContent = [
+                        headers.join(','),
+                        ...visibleRows.map(row => {
+                            const cells = Array.from(row.cells);
+                            return cells.map(cell => {
+                                const text = cell.textContent.replace(/,/g, ';').trim();
+                                return `"${text}"`;
+                            }).join(',');
+                        })
+                    ].join('\n');
+                } else {
+                    headers = [
+                        'Timestamp',
+                        'RSSI (dBm)', 'Calidad RSSI',
+                        'RSRP (dBm)', 'Calidad RSRP',
+                        'RSRQ (dB)', 'Calidad RSRQ',
+                        'SINR (dB)', 'Calidad SINR'
+                    ];
+                    csvContent = [
+                        headers.join(','),
+                        ...visibleRows.map(row => {
+                            const cells = Array.from(row.cells);
+                            const timestamp = cells[0].textContent.trim();
+                            
+                            // Obtener valores y calidades de cada métrica
+                            const rssiBadge = cells[1].querySelector('.badge');
+                            const rsrpBadge = cells[2].querySelector('.badge');
+                            const rsrqBadge = cells[3].querySelector('.badge');
+                            const sinrBadge = cells[4].querySelector('.badge');
+
+                            const getQuality = (badge) => {
+                                if (badge.classList.contains('bg-success')) return 'Excelente';
+                                if (badge.classList.contains('bg-primary')) return 'Bueno';
+                                if (badge.classList.contains('bg-warning')) return 'Regular';
+                                return 'Pobre';
+                            };
+
+                            const values = [
+                                `"${timestamp}"`,
+                                `"${rssiBadge.textContent.trim()}"`,
+                                `"${getQuality(rssiBadge)}"`,
+                                `"${rsrpBadge.textContent.trim()}"`,
+                                `"${getQuality(rsrpBadge)}"`,
+                                `"${rsrqBadge.textContent.trim()}"`,
+                                `"${getQuality(rsrqBadge)}"`,
+                                `"${sinrBadge.textContent.trim()}"`,
+                                `"${getQuality(sinrBadge)}"`
+                            ];
+
+                            return values.join(',');
+                        })
+                    ].join('\n');
+                }
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'mediciones_conectividad.csv');
+                link.style.visibility = 'hidden';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            // Event listeners
+            searchInput.addEventListener('input', filterTable);
+            qualityFilter.addEventListener('change', filterTable);
+            metricFilter.addEventListener('change', filterTable);
+            resetButton.addEventListener('click', function() {
+                searchInput.value = '';
+                qualityFilter.value = '';
+                metricFilter.value = '';
+                filterTable();
+            });
+            exportButton.addEventListener('click', exportToCSV);
+            toggleViewButton.addEventListener('click', toggleView);
+
+            // Inicializar la tabla
+            filterTable();
+            {% endif %}
+        });
 
         // Renderizar los gráficos cuando el documento esté listo
         document.addEventListener('DOMContentLoaded', renderGraphs);
