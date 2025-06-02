@@ -1031,7 +1031,7 @@
                                     timeRange: {
                                         start: '{{ report.time_range.start }}',
                                         end: '{{ report.time_range.end }}',
-                                        duration: {{ report.time_range.duration_minutes }}
+                                        duration: '{{ report.time_range.duration_minutes }} minutos'
                                     },
                                     signalQuality: {
                                         {% for metric, values in report.signal_quality.items() %}
