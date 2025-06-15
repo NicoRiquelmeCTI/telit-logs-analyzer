@@ -30,7 +30,7 @@ class ConnectivityData:
         active_band: Active Band (1-63 according to 3GPP TS 36.101)
         t3402: Timer T3402 in seconds
         t3412: Timer T3412 in seconds
-        sinr: Signal-to-Interference plus Noise Ratio
+        sinr: Signal-to-Interference plus Noise Ratio (dB)
         tx_power: Optional[Transmit Power (dBm), only available in traffic]
     """
     timestamp: datetime

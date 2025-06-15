@@ -110,7 +110,7 @@ class LogFileConnectivityRepository(ConnectivityRepository):
                         active_band = int(data[15])
                         t3402 = int(data[16])
                         t3412 = int(data[17])
-                        sinr = float(data[18])
+                        sinr = float(data[18]) * 0.25  # Convertir el valor raw a dB según documentación Telit
                         
                         connectivity_data.append(ConnectivityData(
                             timestamp=current_timestamp,

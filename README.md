@@ -68,7 +68,7 @@ source $(poetry env info --path)/bin/activate
 For development and testing purposes, use the main entry point:
 
 ```bash
-python main.py
+poetry run uvicorn src.connectivity_analyzer.interfaces.web.app:app --reload --port 8000
 ```
 
 This will:

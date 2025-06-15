@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: connectivity-analyzer
+    runtime: python
+    buildCommand: poetry install
+    startCommand: poetry run uvicorn src.connectivity_analyzer.interfaces.web.app:app --host 0.0.0.0 --port ${PORT:-8000}
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0 

@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analizador de Conectividad</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        .result-section {
+            display: none;
+        }
+        .result-section.show {
+            display: block;
+        }
+        .graph-container {
+            margin-bottom: 2rem;
+        }
+        .chat-message {
+            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-message.user {
+            align-items: flex-end;
+        }
+        .chat-message.assistant {
+            align-items: flex-start;
+        }
+        .chat-message.system {
+            align-items: center;
+        }
+        .message-content {
+            max-width: 80%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            background-color: #f8f9fa;
+        }
+        .message-content p {
+            margin-bottom: 0.5rem;
+        }
+        .message-content p:last-child {
+            margin-bottom: 0;
+        }
+        .message-content ul {
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+        }
+        .message-content li {
+            margin-bottom: 0.25rem;
+        }
+        .message-content strong {
+            font-weight: 600;
+        }
+        .message-content em {
+            font-style: italic;
+        }
+        .user .message-content {
+            background-color: #007bff;
+            color: white;
+        }
+        .user .message-content strong,
+        .user .message-content em {
+            color: white;
+        }
+        .assistant .message-content {
+            background-color: #e9ecef;
+        }
+        .system .message-content {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+        #chatMessages::-webkit-scrollbar {
+            width: 6px;
+        }
+        #chatMessages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        #chatMessages::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        #chatMessages::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Estilos para impresión */
+        @media print {
+            body {
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+            }
+
+            .container {
+                width: 100% !important;
+                max-width: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            .card {
+                border: none !important;
+                box-shadow: none !important;
+                margin-bottom: 20px !important;
+                page-break-inside: avoid !important;
+            }
+
+            .card-body {
+                padding: 10px !important;
+            }
+
+            .row {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                margin: 0 !important;
+            }
+
+            .col-md-8 {
+                width: 100% !important;
+                max-width: 100% !important;
+                flex: 0 0 100% !important;
+                margin: 0 auto !important;
+            }
+
+            .col-md-6 {
+                width: 50% !important;
+                max-width: 50% !important;
+                flex: 0 0 50% !important;
+            }
+
+            .col-md-4 {
+                width: 33.333333% !important;
+                max-width: 33.333333% !important;
+                flex: 0 0 33.333333% !important;
+            }
+
+            .col-md-3 {
+                width: 25% !important;
+                max-width: 25% !important;
+                flex: 0 0 25% !important;
+            }
+
+            /* Ocultar elementos no necesarios en la impresión */
+            .btn-group,
+            #exportPDF,
+            .btn-close,
+            .footer,
+            form,
+            .alert-info.position-fixed {
+                display: none !important;
+            }
+
+            /* Ajustar gráficos para impresión */
+            .graph-container {
+                width: 100% !important;
+                height: auto !important;
+                margin: 20px 0 !important;
+            }
+
+            /* Ajustar tablas para impresión */
+            .table-responsive {
+                overflow: visible !important;
+                max-height: none !important;
+            }
+
+            .table {
+                width: 100% !important;
+                margin-bottom: 1rem !important;
+            }
+
+            /* Asegurar que los badges sean visibles */
+            .badge {
+                border: 1px solid #000 !important;
+                color: #000 !important;
+                background-color: transparent !important;
+            }
+
+            /* Ajustar márgenes y espaciado */
+            .mb-3, .mb-4 {
+                margin-bottom: 10px !important;
+            }
+
+            .mt-3, .mt-4 {
+                margin-top: 10px !important;
+            }
+
+            /* Asegurar que los textos sean legibles */
+            * {
+                color: #000 !important;
+                text-shadow: none !important;
+                box-shadow: none !important;
+            }
+
+            /* Ajustar el tamaño de fuente */
+            body {
+                font-size: 12pt !important;
+            }
+
+            h1, h2, h3, h4, h5, h6 {
+                font-size: 14pt !important;
+                margin-top: 15px !important;
+                margin-bottom: 10px !important;
+            }
+
+            /* Asegurar que las imágenes y gráficos se impriman correctamente */
+            img, svg {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="text-center mb-4">
+                            <img src="https://enteldigital.cl/hubfs/raw_assets/public/Theme%20Entel%20Digital/images/logo_entel_para_prueba_azul.svg" alt="Logo" class="img-fluid" style="max-height: 80px; width: auto;">
+                        </div>
+                        <h1 class="card-title text-center mb-4">Analizador de mediciones de conectividad narrowband</h1>
+                        
+                        {% if error %}
+                        <div class="alert alert-danger" role="alert">
+                            {{ error }}
+                        </div>
+                        {% endif %}
+
+                        <form action="/analyze" method="post" enctype="multipart/form-data">
+                            <div class="mb-4">
+                                <label for="log_text" class="form-label">Pegar Texto del Log</label>
+                                <textarea class="form-control" id="log_text" name="log_text" rows="5" placeholder="Pegue su texto de log aquí..."></textarea>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="log_file" class="form-label">O Subir Archivo de Log</label>
+                                <input type="file" class="form-control" id="log_file" name="log_file" accept=".log,.txt">
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search"></i> Analizar
+                                </button>
+                            </div>
+                        </form>
+
+                        {% if report %}
+                        <div class="result-section show mt-4">
+                            <h2 class="h4 mb-3">Resultados del Análisis</h2>
+                            
+                            <!-- Información de Ubicación -->
+                            {% if report.location %}
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h3 class="h5 mb-0">Ubicación de la Medición</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-building me-2" style="font-size: 1.5rem;"></i>
+                                                <div>
+                                                    <h6 class="mb-1">Módulo</h6>
+                                                    <p class="mb-0">{{ report.location.module }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-layers me-2" style="font-size: 1.5rem;"></i>
+                                                <div>
+                                                    <h6 class="mb-1">Piso</h6>
+                                                    <p class="mb-0">{{ report.location.floor }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Serie Temporal de Calidad de Señal -->
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h3 class="h5 mb-0">Calidad de Señal en el Tiempo</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div id="signalTimeSeries" class="graph-container"></div>
+                                    
+                                    <!-- Div para mostrar el log original -->
+                                    <div id="logDetails" class="mt-3" style="display: none;">
+                                        <div class="card">
+                                            <div class="card-header d-flex justify-content-between align-items-center">
+                                                <h5 class="card-title h6 mb-0">Log Original</h5>
+                                                <button type="button" class="btn-close" onclick="document.getElementById('logDetails').style.display = 'none'"></button>
+                                            </div>
+                                            <div class="card-body">
+                                                <pre id="logContent" class="mb-0" style="max-height: 200px; overflow-y: auto;"></pre>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Definiciones técnicas -->
+                                    <div class="mt-4">
+                                        <h4 class="h6 mb-3">Definiciones Técnicas:</h4>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <div class="card h-100">
+                                                    <div class="card-body">
+                                                        <h5 class="card-title h6">RSSI (Received Signal Strength Indicator)</h5>
+                                                        <p class="card-text small">Indicador de la potencia total de la señal recibida, incluyendo la señal deseada, interferencia y ruido. Se mide en dBm.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <div class="card h-100">
+                                                    <div class="card-body">
+                                                        <h5 class="card-title h6">RSRP (Reference Signal Received Power)</h5>
+                                                        <p class="card-text small">Potencia promedio de la señal de referencia recibida. Es una medida más precisa que el RSSI para evaluar la intensidad de la señal. Se mide en dBm.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <div class="card h-100">
+                                                    <div class="card-body">
+                                                        <h5 class="card-title h6">RSRQ (Reference Signal Received Quality)</h5>
+                                                        <p class="card-text small">Calidad de la señal de referencia recibida, calculada como la relación entre RSRP y RSSI. Proporciona información sobre la calidad de la señal en relación con el ruido e interferencia.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <div class="card h-100">
+                                                    <div class="card-body">
+                                                        <h5 class="card-title h6">SINR (Signal to Interference plus Noise Ratio)</h5>
+                                                        <p class="card-text small">Relación entre la potencia de la señal deseada y la suma de interferencia más ruido. Indica la calidad de la señal en presencia de interferencias. Se mide en dB.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tabla de Calidad de Señal -->
+                                    <div class="mt-4">
+                                        <h4 class="h6 mb-3">Métricas de Calidad de Señal:</h4>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Métrica</th>
+                                                        <th>Media</th>
+                                                        <th>Desv. Est.</th>
+                                                        <th>Mín</th>
+                                                        <th>Máx</th>
+                                                        <th>Mediana</th>
+                                                        <th>Calidad</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for metric, values in report.signal_quality.items() %}
+                                                    <tr>
+                                                        <td>{{ metric.upper() }}</td>
+                                                        <td>{{ "%.2f"|format(values.mean) }}</td>
+                                                        <td>{{ "%.2f"|format(values.std) }}</td>
+                                                        <td>{{ "%.2f"|format(values.min) }}</td>
+                                                        <td>{{ "%.2f"|format(values.max) }}</td>
+                                                        <td>{{ "%.2f"|format(values.median) }}</td>
+                                                        <td>
+                                                            {% if metric == 'rssi' %}
+                                                                {% if values.mean > -65 %}
+                                                                    <span class="badge bg-success">Excelente</span>
+                                                                {% elif values.mean > -75 %}
+                                                                    <span class="badge bg-primary">Bueno</span>
+                                                                {% elif values.mean > -85 %}
+                                                                    <span class="badge bg-warning text-dark">Regular</span>
+                                                                {% else %}
+                                                                    <span class="badge bg-danger">Pobre</span>
+                                                                {% endif %}
+                                                            {% elif metric == 'rsrp' %}
+                                                                {% if values.mean > -80 %}
+                                                                    <span class="badge bg-success">Excelente</span>
+                                                                {% elif values.mean > -90 %}
+                                                                    <span class="badge bg-primary">Bueno</span>
+                                                                {% elif values.mean > -100 %}
+                                                                    <span class="badge bg-warning text-dark">Regular</span>
+                                                                {% else %}
+                                                                    <span class="badge bg-danger">Pobre</span>
+                                                                {% endif %}
+                                                            {% elif metric == 'rsrq' %}
+                                                                {% if values.mean > -10 %}
+                                                                    <span class="badge bg-success">Excelente</span>
+                                                                {% elif values.mean > -15 %}
+                                                                    <span class="badge bg-primary">Bueno</span>
+                                                                {% elif values.mean > -20 %}
+                                                                    <span class="badge bg-warning text-dark">Regular</span>
+                                                                {% else %}
+                                                                    <span class="badge bg-danger">Pobre</span>
+                                                                {% endif %}
+                                                            {% elif metric == 'sinr' %}
+                                                                {% if values.mean > 13 %}
+                                                                    <span class="badge bg-success">Excelente</span>
+                                                                {% elif values.mean > 10 %}
+                                                                    <span class="badge bg-primary">Bueno</span>
+                                                                {% elif values.mean > 0 %}
+                                                                    <span class="badge bg-warning text-dark">Regular</span>
+                                                                {% else %}
+                                                                    <span class="badge bg-danger">Pobre</span>
+                                                                {% endif %}
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- Conclusión de Calidad de Señal -->
+                                    <div class="mt-4">
+                                        <h4 class="h6 mb-3">Conclusión de Calidad de Señal:</h4>
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <h5 class="card-title h6">Resumen de Calidad:</h5>
+                                                        <ul class="list-group list-group-flush">
+                                                            {% for metric, values in report.signal_quality.items() %}
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span>{{ metric.upper() }}:</span>
+                                                                {% if metric == 'rssi' %}
+                                                                    {% if values.mean > -65 %}
+                                                                        <span class="badge bg-success">Excelente</span>
+                                                                    {% elif values.mean > -75 %}
+                                                                        <span class="badge bg-primary">Bueno</span>
+                                                                    {% elif values.mean > -85 %}
+                                                                        <span class="badge bg-warning text-dark">Regular</span>
+                                                                    {% else %}
+                                                                        <span class="badge bg-danger">Pobre</span>
+                                                                    {% endif %}
+                                                                {% elif metric == 'rsrp' %}
+                                                                    {% if values.mean > -80 %}
+                                                                        <span class="badge bg-success">Excelente</span>
+                                                                    {% elif values.mean > -90 %}
+                                                                        <span class="badge bg-primary">Bueno</span>
+                                                                    {% elif values.mean > -100 %}
+                                                                        <span class="badge bg-warning text-dark">Regular</span>
+                                                                    {% else %}
+                                                                        <span class="badge bg-danger">Pobre</span>
+                                                                    {% endif %}
+                                                                {% elif metric == 'rsrq' %}
+                                                                    {% if values.mean > -10 %}
+                                                                        <span class="badge bg-success">Excelente</span>
+                                                                    {% elif values.mean > -15 %}
+                                                                        <span class="badge bg-primary">Bueno</span>
+                                                                    {% elif values.mean > -20 %}
+                                                                        <span class="badge bg-warning text-dark">Regular</span>
+                                                                    {% else %}
+                                                                        <span class="badge bg-danger">Pobre</span>
+                                                                    {% endif %}
+                                                                {% elif metric == 'sinr' %}
+                                                                    {% if values.mean > 13 %}
+                                                                        <span class="badge bg-success">Excelente</span>
+                                                                    {% elif values.mean > 10 %}
+                                                                        <span class="badge bg-primary">Bueno</span>
+                                                                    {% elif values.mean > 0 %}
+                                                                        <span class="badge bg-warning text-dark">Regular</span>
+                                                                    {% else %}
+                                                                        <span class="badge bg-danger">Pobre</span>
+                                                                    {% endif %}
+                                                                {% endif %}
+                                                            </li>
+                                                            {% endfor %}
+                                                        </ul>
+                                                        
+                                                        <!-- Estimación CSQ -->
+                                                        <div class="mt-3">
+                                                            <h6 class="card-subtitle mb-2">Estimación CSQ:</h6>
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="signal-bars me-2" style="font-size: 24px; color: #6c757d;">
+                                                                    {% if report.csq >= 26 %}
+                                                                        <i class="bi bi-reception-4"></i>
+                                                                        <span class="badge bg-success ms-2">Excelente ({{ report.csq }})</span>
+                                                                    {% elif report.csq >= 21 %}
+                                                                        <i class="bi bi-reception-3"></i>
+                                                                        <span class="badge bg-primary ms-2">Buena ({{ report.csq }})</span>
+                                                                    {% elif report.csq >= 11 %}
+                                                                        <i class="bi bi-reception-2"></i>
+                                                                        <span class="badge bg-warning text-dark ms-2">Débil ({{ report.csq }})</span>
+                                                                    {% elif report.csq >= 1 %}
+                                                                        <i class="bi bi-reception-1"></i>
+                                                                        <span class="badge bg-danger ms-2">Muy débil ({{ report.csq }})</span>
+                                                                    {% else %}
+                                                                        <i class="bi bi-reception-0"></i>
+                                                                        <span class="badge bg-danger ms-2">Sin señal ({{ report.csq }})</span>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                            <small class="text-muted d-block mt-1">
+                                                                CSQ estimado basado en RSRP (rango 0-31)
+                                                            </small>
+                                                            <div class="alert alert-info mt-2 small">
+                                                                <i class="bi bi-info-circle"></i>
+                                                                <strong>CSQ (Command Signal Quality):</strong> Es un indicador numérico que representa la calidad de la señal de radio en dispositivos celulares. Se mide en una escala de 0 a 31, donde:
+                                                                <ul class="mb-0 mt-2">
+                                                                    <li><strong>0:</strong> Sin señal</li>
+                                                                    <li><strong>1-10:</strong> Señal muy débil</li>
+                                                                    <li><strong>11-20:</strong> Señal débil</li>
+                                                                    <li><strong>21-25:</strong> Señal buena</li>
+                                                                    <li><strong>26-31:</strong> Señal excelente</li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <h5 class="card-title h6"> Nivel de Señal:</h5>
+                                                        <div class="text-center mb-3">
+                                                            <div class="signal-bars" style="font-size: 48px; color: #6c757d;">
+                                                                {% if report.signal_level == 'Excelente' %}
+                                                                    <i class="bi bi-reception-4"></i>
+                                                                    <span class="badge bg-success ms-2">Excelente</span>
+                                                                {% elif report.signal_level == 'Buena' %}
+                                                                    <i class="bi bi-reception-3"></i>
+                                                                    <span class="badge bg-primary ms-2">Buena</span>
+                                                                {% elif report.signal_level == 'Aceptable' %}
+                                                                    <i class="bi bi-reception-2"></i>
+                                                                    <span class="badge bg-warning text-dark ms-2">Aceptable</span>
+                                                                {% elif report.signal_level == 'Mala' %}
+                                                                    <i class="bi bi-reception-1"></i>
+                                                                    <span class="badge bg-danger ms-2">Mala</span>
+                                                                {% else %}
+                                                                    <i class="bi bi-reception-0"></i>
+                                                                    <span class="badge bg-danger ms-2">Muy mala</span>
+                                                                {% endif %}
+                                                            </div>
+                                                            <div class="mt-2">
+                                                                <small class="text-muted">
+                                                                    RSRP: {{ "%.2f"|format(report.signal_quality.rsrp.mean) }} dBm | 
+                                                                    SINR: {{ "%.2f"|format(report.signal_quality.sinr.mean) }} dB
+                                                                </small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="alert alert-info mt-2 small">
+                                                            <i class="bi bi-info-circle"></i>
+                                                            <strong>Definición:</strong> El nivel de señal se determina mediante la combinación de RSRP y SINR:
+                                                            <ul class="mb-0 mt-2">
+                                                                <li><strong>Excelente:</strong> RSRP > -90 dBm y SINR > 20 dB</li>
+                                                                <li><strong>Buena:</strong> RSRP > -100 dBm y SINR > 13 dB</li>
+                                                                <li><strong>Aceptable:</strong> RSRP > -110 dBm y SINR > 5 dB</li>
+                                                                <li><strong>Mala:</strong> RSRP > -120 dBm y SINR > 0 dB</li>
+                                                                <li><strong>Muy mala:</strong> RSRP ≤ -120 dBm o SINR ≤ 0 dB</li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Rangos de Referencia -->
+                                    <div class="mt-4">
+                                        <h4 class="h6 mb-3">Rangos de Referencia:</h4>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="card mb-3">
+                                                    <div class="card-header">
+                                                        <h5 class="card-title h6 mb-0">RSSI (Received Signal Strength Indicator)</h5>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <ul class="list-group list-group-flush">
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span class="text-success">Excelente</span>
+                                                                <span class="badge bg-success">> -65 dBm</span>
+                                                            </li>
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span class="text-primary">Bueno</span>
+                                                                <span class="badge bg-primary">-65 a -75 dBm</span>
+                                                            </li>
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span class="text-warning">Regular</span>
+                                                                <span class="badge bg-warning text-dark">-75 a -85 dBm</span>
+                                                            </li>
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span class="text-danger">Pobre</span>
+                                                                <span class="badge bg-danger">< -85 dBm</span>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+
+                                                <div class="card mb-3">
+                                                    <div class="card-header">
+                                                        <h5 class="card-title h6 mb-0">RSRP (Reference Signal Received Power)</h5>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <ul class="list-group list-group-flush">
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span class="text-success">Excelente</span>
+                                                                <span class="badge bg-success">> -80 dBm</span>
+                                                            </li>
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span class="text-primary">Bueno</span>
+                                                                <span class="badge bg-primary">-80 a -90 dBm</span>
+                                                            </li>
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span class="text-warning">Regular</span>
+                                                                <span class="badge bg-warning text-dark">-90 a -100 dBm</span>
+                                                            </li>
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span class="text-danger">Pobre</span>
+                                                                <span class="badge bg-danger">< -100 dBm</span>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="card mb-3">
+                                                    <div class="card-header">
+                                                        <h5 class="card-title h6 mb-0">RSRQ (Reference Signal Received Quality)</h5>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <ul class="list-group list-group-flush">
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span class="text-success">Excelente</span>
+                                                                <span class="badge bg-success">> -10 dB</span>
+                                                            </li>
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span class="text-primary">Bueno</span>
+                                                                <span class="badge bg-primary">-10 a -15 dB</span>
+                                                            </li>
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span class="text-warning">Regular</span>
+                                                                <span class="badge bg-warning text-dark">-15 a -20 dB</span>
+                                                            </li>
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span class="text-danger">Pobre</span>
+                                                                <span class="badge bg-danger">< -20 dB</span>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+
+                                                <div class="card mb-3">
+                                                    <div class="card-header">
+                                                        <h5 class="card-title h6 mb-0">SINR (Signal to Interference plus Noise Ratio)</h5>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <ul class="list-group list-group-flush">
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span class="text-success">Excelente</span>
+                                                                <span class="badge bg-success">> 13 dB</span>
+                                                            </li>
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span class="text-primary">Bueno</span>
+                                                                <span class="badge bg-primary">10 a 13 dB</span>
+                                                            </li>
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span class="text-warning">Regular</span>
+                                                                <span class="badge bg-warning text-dark">0 a 10 dB</span>
+                                                            </li>
+                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                <span class="text-danger">Pobre</span>
+                                                                <span class="badge bg-danger">< 0 dB</span>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Radar de Calidad de Señal -->
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h3 class="h5 mb-0">Radar de Calidad de Señal</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div id="signalRadar" class="graph-container"></div>
+                                    
+                                    <!-- Explicación del Radar -->
+                                    <div class="mt-4">
+                                        <h4 class="h6 mb-3">Interpretación del Radar de Calidad de Señal:</h4>
+                                        <div class="card mb-3">
+                                            <div class="card-body">
+                                                <h5 class="card-title h6">¿Qué muestra este gráfico?</h5>
+                                                <p class="card-text small">El gráfico radar muestra una vista general de la calidad de la señal, representando los valores promedio de los cuatro indicadores principales (RSSI, RSRP, RSRQ y SINR) en un formato circular. Cada eje representa un indicador diferente, y el área sombreada muestra los valores promedio.</p>
+                                                
+                                                <h5 class="card-title h6 mt-3">¿Cómo interpretarlo?</h5>
+                                                <ul class="small">
+                                                    <li class="mb-2"><strong>Forma del área:</strong> Un área más grande y uniforme indica una mejor calidad de señal general.</li>
+                                                    <li class="mb-2"><strong>Valores en los ejes:</strong> Los valores más cercanos a 0 dBm/dB indican mejor calidad de señal.</li>
+                                                    <li class="mb-2"><strong>Asimetría:</strong> Si el área es irregular, indica que algunos indicadores tienen mejor calidad que otros.</li>
+                                                </ul>
+
+                                                <h5 class="card-title h6 mt-3">Rangos de referencia:</h5>
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm small">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Indicador</th>
+                                                                <th>Excelente</th>
+                                                                <th>Bueno</th>
+                                                                <th>Regular</th>
+                                                                <th>Pobre</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <tr>
+                                                                <td>RSSI</td>
+                                                                <td>> -65 dBm</td>
+                                                                <td>-65 a -75 dBm</td>
+                                                                <td>-75 a -85 dBm</td>
+                                                                <td>< -85 dBm</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>RSRP</td>
+                                                                <td>> -80 dBm</td>
+                                                                <td>-80 a -90 dBm</td>
+                                                                <td>-90 a -100 dBm</td>
+                                                                <td>< -100 dBm</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>RSRQ</td>
+                                                                <td>> -10 dB</td>
+                                                                <td>-10 a -15 dB</td>
+                                                                <td>-15 a -20 dB</td>
+                                                                <td>< -20 dB</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>SINR</td>
+                                                                <td>> 13 dB</td>
+                                                                <td>10 a 13 dB</td>
+                                                                <td>0 a 10 dB</td>
+                                                                <td>< 0 dB</td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+
+                                                <div class="alert alert-info mt-3 small">
+                                                    <i class="bi bi-info-circle"></i> Este gráfico es especialmente útil para identificar rápidamente si hay problemas de calidad de señal en algún indicador específico y para comparar el rendimiento general de la conexión.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Información de Red -->
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h3 class="h5 mb-0">Información de Red</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        {% for key, value in report.network_info.items() %}
+                                        <div class="col-md-6 mb-2">
+                                            <strong>{{ key|replace('_', ' ')|title }}:</strong> {{ value }}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Estado de Conexión -->
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h3 class="h5 mb-0">Estado de Conexión</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        {% for key, value in report.connection_state.items() %}
+                                        <div class="col-md-6 mb-2">
+                                            <strong>{{ key|replace('_', ' ')|title }}:</strong> {{ value }}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Rango de Tiempo -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="h5 mb-0">Rango de Tiempo</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <strong>Inicio:</strong> {{ report.time_range.start }}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <strong>Fin:</strong> {{ report.time_range.end }}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <strong>Duración:</strong> {{ "%.2f"|format(report.time_range.duration_minutes) }} minutos
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Exploración de Mediciones Individuales -->
+                            <div class="card mt-4">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h3 class="h5 mb-0">Exploración de Mediciones Individuales</h3>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleView">
+                                            <i class="bi bi-table"></i> Cambiar Vista
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="exportCSV">
+                                            <i class="bi bi-download"></i> Exportar CSV
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <div class="row g-2">
+                                            <div class="col-md-3">
+                                                <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="Buscar...">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <select class="form-select form-select-sm" id="qualityFilter">
+                                                    <option value="">Todos los niveles de calidad</option>
+                                                    <option value="Excelente">Excelente</option>
+                                                    <option value="Bueno">Bueno</option>
+                                                    <option value="Regular">Regular</option>
+                                                    <option value="Pobre">Pobre</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <select class="form-select form-select-sm" id="metricFilter">
+                                                    <option value="">Todas las métricas</option>
+                                                    <option value="RSSI">RSSI</option>
+                                                    <option value="RSRP">RSRP</option>
+                                                    <option value="RSRQ">RSRQ</option>
+                                                    <option value="SINR">SINR</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <button class="btn btn-sm btn-outline-secondary w-100" id="resetFilters">
+                                                    <i class="bi bi-x-circle"></i> Limpiar Filtros
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                        <!-- Vista por métricas (por defecto) -->
+                                        <table class="table table-sm table-hover" id="measurementsTable">
+                                            <thead class="sticky-top bg-light">
+                                                <tr>
+                                                    <th>Timestamp</th>
+                                                    <th>Métrica</th>
+                                                    <th>Valor</th>
+                                                    <th>Calidad</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for timestamp in report.time_series.timestamps %}
+                                                <tr>
+                                                    <td>{{ timestamp }}</td>
+                                                    <td>RSSI</td>
+                                                    <td>{{ "%.2f"|format(report.time_series.rssi[loop.index0]) }} dBm</td>
+                                                    <td>
+                                                        {% set rssi_value = report.time_series.rssi[loop.index0] %}
+                                                        {% if rssi_value > -65 %}
+                                                            <span class="badge bg-success">Excelente</span>
+                                                        {% elif rssi_value > -75 %}
+                                                            <span class="badge bg-primary">Bueno</span>
+                                                        {% elif rssi_value > -85 %}
+                                                            <span class="badge bg-warning text-dark">Regular</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">Pobre</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>{{ timestamp }}</td>
+                                                    <td>RSRP</td>
+                                                    <td>{{ "%.2f"|format(report.time_series.rsrp[loop.index0]) }} dBm</td>
+                                                    <td>
+                                                        {% set rsrp_value = report.time_series.rsrp[loop.index0] %}
+                                                        {% if rsrp_value > -80 %}
+                                                            <span class="badge bg-success">Excelente</span>
+                                                        {% elif rsrp_value > -90 %}
+                                                            <span class="badge bg-primary">Bueno</span>
+                                                        {% elif rsrp_value > -100 %}
+                                                            <span class="badge bg-warning text-dark">Regular</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">Pobre</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>{{ timestamp }}</td>
+                                                    <td>RSRQ</td>
+                                                    <td>{{ "%.2f"|format(report.time_series.rsrq[loop.index0]) }} dB</td>
+                                                    <td>
+                                                        {% set rsrq_value = report.time_series.rsrq[loop.index0] %}
+                                                        {% if rsrq_value > -10 %}
+                                                            <span class="badge bg-success">Excelente</span>
+                                                        {% elif rsrq_value > -15 %}
+                                                            <span class="badge bg-primary">Bueno</span>
+                                                        {% elif rsrq_value > -20 %}
+                                                            <span class="badge bg-warning text-dark">Regular</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">Pobre</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>{{ timestamp }}</td>
+                                                    <td>SINR</td>
+                                                    <td>{{ "%.2f"|format(report.time_series.sinr[loop.index0]) }} dB</td>
+                                                    <td>
+                                                        {% set sinr_value = report.time_series.sinr[loop.index0] %}
+                                                        {% if sinr_value > 13 %}
+                                                            <span class="badge bg-success">Excelente</span>
+                                                        {% elif sinr_value > 10 %}
+                                                            <span class="badge bg-primary">Bueno</span>
+                                                        {% elif sinr_value > 0 %}
+                                                            <span class="badge bg-warning text-dark">Regular</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">Pobre</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+
+                                        <!-- Vista por columnas (inicialmente oculta) -->
+                                        <table class="table table-sm table-hover" id="measurementsTableColumns" style="display: none;">
+                                            <thead class="sticky-top bg-light">
+                                                <tr>
+                                                    <th>Timestamp</th>
+                                                    <th>RSSI (dBm)</th>
+                                                    <th>RSRP (dBm)</th>
+                                                    <th>RSRQ (dB)</th>
+                                                    <th>SINR (dB)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for timestamp in report.time_series.timestamps %}
+                                                <tr>
+                                                    <td>{{ timestamp }}</td>
+                                                    <td>
+                                                        {% set rssi_value = report.time_series.rssi[loop.index0] %}
+                                                        {% if rssi_value > -65 %}
+                                                            <span class="badge bg-success">{{ "%.2f"|format(rssi_value) }}</span>
+                                                        {% elif rssi_value > -75 %}
+                                                            <span class="badge bg-primary">{{ "%.2f"|format(rssi_value) }}</span>
+                                                        {% elif rssi_value > -85 %}
+                                                            <span class="badge bg-warning text-dark">{{ "%.2f"|format(rssi_value) }}</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">{{ "%.2f"|format(rssi_value) }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% set rsrp_value = report.time_series.rsrp[loop.index0] %}
+                                                        {% if rsrp_value > -80 %}
+                                                            <span class="badge bg-success">{{ "%.2f"|format(rsrp_value) }}</span>
+                                                        {% elif rsrp_value > -90 %}
+                                                            <span class="badge bg-primary">{{ "%.2f"|format(rsrp_value) }}</span>
+                                                        {% elif rsrp_value > -100 %}
+                                                            <span class="badge bg-warning text-dark">{{ "%.2f"|format(rsrp_value) }}</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">{{ "%.2f"|format(rsrp_value) }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% set rsrq_value = report.time_series.rsrq[loop.index0] %}
+                                                        {% if rsrq_value > -10 %}
+                                                            <span class="badge bg-success">{{ "%.2f"|format(rsrq_value) }}</span>
+                                                        {% elif rsrq_value > -15 %}
+                                                            <span class="badge bg-primary">{{ "%.2f"|format(rsrq_value) }}</span>
+                                                        {% elif rsrq_value > -20 %}
+                                                            <span class="badge bg-warning text-dark">{{ "%.2f"|format(rsrq_value) }}</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">{{ "%.2f"|format(rsrq_value) }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% set sinr_value = report.time_series.sinr[loop.index0] %}
+                                                        {% if sinr_value > 13 %}
+                                                            <span class="badge bg-success">{{ "%.2f"|format(sinr_value) }}</span>
+                                                        {% elif sinr_value > 10 %}
+                                                            <span class="badge bg-primary">{{ "%.2f"|format(sinr_value) }}</span>
+                                                        {% elif sinr_value > 0 %}
+                                                            <span class="badge bg-warning text-dark">{{ "%.2f"|format(sinr_value) }}</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">{{ "%.2f"|format(sinr_value) }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Análisis de IA -->
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <h3 class="h5 mb-0">Análisis con IA</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="aiAnalysis" class="mb-3">
+                                    <div class="d-flex justify-content-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Cargando análisis...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <script type="module">
+                            import Chatbot from "https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js"
+                            import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js';
+                            
+                            // Función para generar el contexto del análisis
+                            function generateAnalysisContext() {
+                                return {
+                                    timeRange: {
+                                        start: '{{ report.time_range.start }}',
+                                        end: '{{ report.time_range.end }}',
+                                        duration: `${{ report.time_range.duration_minutes }} minutos`
+                                    },
+                                    signalQuality: {
+                                        {% for metric, values in report.signal_quality.items() %}
+                                        {{ metric }}: {
+                                            mean: {{ values.mean }},
+                                            std: {{ values.std }},
+                                            min: {{ values.min }},
+                                            max: {{ values.max }},
+                                            median: {{ values.median }}
+                                        }{% if not loop.last %},{% endif %}
+                                        {% endfor %}
+                                    },
+                                    networkInfo: {
+                                        {% for key, value in report.network_info.items() %}
+                                        {{ key }}: '{{ value }}'{% if not loop.last %},{% endif %}
+                                        {% endfor %}
+                                    }
+                                };
+                            }
+
+                            // Configuración del chatbot
+                            const chatConfig = {
+                                chatflowid: "{{ flowise_chatflow_id }}",
+                                apiHost: "{{ flowise_url }}",
+                                chatflowConfig: {
+                                    inputs: {
+                                        context: `{${generateAnalysisContext()}}`
+                                    }
+                                },
+                                theme: {
+                                    button: {
+                                        backgroundColor: "#007bff",
+                                        right: 20,
+                                        bottom: 20,
+                                        size: "medium",
+                                        iconColor: "white",
+                                        customIconSrc: "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/svg/google-messages.svg",
+                                    },
+                                    chatWindow: {
+                                        welcomeMessage: "Hola, soy tu asistente de análisis. ¿En qué puedo ayudarte?",
+                                        backgroundColor: "#ffffff",
+                                        height: 600,
+                                        width: 400,
+                                        fontSize: 16,
+                                        poweredByTextColor: "#303235",
+                                        botMessage: {
+                                            backgroundColor: "#f8f9fa",
+                                            textColor: "#303235",
+                                            showAvatar: true,
+                                            avatarSrc: "https://raw.githubusercontent.com/zahidkhawaja/langchain-chat-nextjs/main/public/parroticon.png",
+                                        },
+                                        userMessage: {
+                                            backgroundColor: "#007bff",
+                                            textColor: "#ffffff",
+                                            showAvatar: true,
+                                            avatarSrc: "https://raw.githubusercontent.com/zahidkhawaja/langchain-chat-nextjs/main/public/usericon.png",
+                                        },
+                                        textInput: {
+                                            placeholder: "Escribe tu pregunta aquí...",
+                                            backgroundColor: "#ffffff",
+                                            textColor: "#303235",
+                                            sendButtonColor: "#007bff",
+                                        }
+                                    }
+                                }
+                            };
+
+                            // Inicializar el chatbot
+                            const chatbot = Chatbot.init(chatConfig);
+
+                            // Función para obtener el análisis inicial
+                            async function getInitialAnalysis() {
+                                try {
+                                    const context = generateAnalysisContext();
+                                    console.log('Contexto enviado:', context);
+                                    const response = await fetch(`${chatConfig.apiHost}/api/v1/prediction/${chatConfig.chatflowid}`, {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify({
+                                            question: "Analiza directamente los siguientes resultados de conectividad narrowband: " + JSON.stringify(context, null, 2) + "y responde en español",
+                                            inputs: chatConfig.chatflowConfig.inputs
+                                        })
+                                    });
+
+                                    const data = await response.json();
+                                    console.log('Respuesta recibida:', data);
+                                    const analysisDiv = document.getElementById('aiAnalysis');
+                                    
+                                    if (data.error) {
+                                        analysisDiv.innerHTML = `
+                                            <div class="alert alert-danger">
+                                                <i class="bi bi-exclamation-triangle"></i>
+                                                Error al obtener el análisis: ${data.error}
+                                            </div>
+                                        `;
+                                    } else if (!data.text) {
+                                        console.error('Respuesta sin texto:', data);
+                                        analysisDiv.innerHTML = `
+                                            <div class="alert alert-warning">
+                                                <i class="bi bi-exclamation-triangle"></i>
+                                                La respuesta no contiene texto para analizar. Por favor, intente nuevamente.
+                                            </div>
+                                        `;
+                                    } else {
+                                        // Convertir markdown a HTML y aplicar estilos
+                                        const htmlContent = marked.parse(data.text);
+                                        analysisDiv.innerHTML = `
+                                            <div class="message-content">
+                                                <div class="markdown-content">
+                                                    ${htmlContent}
+                                                </div>
+                                            </div>
+                                        `;
+
+                                        // Aplicar estilos adicionales a elementos específicos
+                                        const markdownContent = analysisDiv.querySelector('.markdown-content');
+                                        if (markdownContent) {
+                                            // Estilos para tablas
+                                            markdownContent.querySelectorAll('table').forEach(table => {
+                                                table.classList.add('table', 'table-sm', 'table-bordered');
+                                            });
+
+                                            // Estilos para listas
+                                            markdownContent.querySelectorAll('ul, ol').forEach(list => {
+                                                list.classList.add('list-group', 'list-group-flush', 'mb-3');
+                                                list.querySelectorAll('li').forEach(item => {
+                                                    item.classList.add('list-group-item');
+                                                });
+                                            });
+
+                                            // Estilos para bloques de código
+                                            markdownContent.querySelectorAll('pre code').forEach(block => {
+                                                block.classList.add('bg-light', 'p-3', 'rounded');
+                                            });
+
+                                            // Estilos para párrafos
+                                            markdownContent.querySelectorAll('p').forEach(p => {
+                                                p.classList.add('mb-3');
+                                            });
+
+                                            // Estilos para encabezados
+                                            markdownContent.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(header => {
+                                                header.classList.add('mt-4', 'mb-3');
+                                            });
+                                        }
+                                    }
+                                } catch (error) {
+                                    console.error('Error completo:', error);
+                                    const analysisDiv = document.getElementById('aiAnalysis');
+                                    analysisDiv.innerHTML = `
+                                        <div class="alert alert-danger">
+                                            <i class="bi bi-exclamation-triangle"></i>
+                                            Error al obtener el análisis: ${error.message}
+                                        </div>
+                                    `;
+                                }
+                            }
+
+                            // Obtener el análisis inicial cuando el documento esté listo
+                            document.addEventListener('DOMContentLoaded', getInitialAnalysis);
+
+                            // Funcionalidad para cargar archivo en el textarea
+                            document.addEventListener('DOMContentLoaded', function() {
+                                const fileInput = document.getElementById('log_file');
+                                const textArea = document.getElementById('log_text');
+
+                                fileInput.addEventListener('change', function(e) {
+                                    const file = e.target.files[0];
+                                    if (file) {
+                                        const reader = new FileReader();
+                                        reader.onload = function(e) {
+                                            textArea.value = e.target.result;
+                                        };
+                                        reader.readAsText(file);
+                                    }
+                                });
+                            });
+                        </script>
+                        {% else %}
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <h3 class="h5 mb-0">Análisis con IA</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info mb-0">
+                                    <i class="bi bi-info-circle"></i> El análisis de IA estará disponible después de cargar y analizar un archivo de log.
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Función para verificar si un objeto tiene una propiedad
+        function hasProperty(obj, prop) {
+            return obj && typeof obj === 'object' && prop in obj;
+        }
+
+        // Función para renderizar gráficos solo si los datos están disponibles
+        function renderGraphs() {
+            {% if report %}
+            const report = {{ report|tojson|safe }};
+            
+            // Gráfico de Serie Temporal
+            if (hasProperty(report, 'time_series')) {
+                const timeSeriesData = {
+                    timestamps: report.time_series.timestamps || [],
+                    rssi: report.time_series.rssi || [],
+                    rsrp: report.time_series.rsrp || [],
+                    rsrq: report.time_series.rsrq || [],
+                    sinr: report.time_series.sinr || []
+                };
+
+                const timeSeriesTrace = [
+                    {
+                        x: timeSeriesData.timestamps,
+                        y: timeSeriesData.rssi,
+                        name: 'RSSI',
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        line: { color: '#1f77b4' },
+                        hovertemplate: 'RSSI: %{y:.2f} dBm<br>Timestamp: %{x}<extra></extra>'
+                    },
+                    {
+                        x: timeSeriesData.timestamps,
+                        y: timeSeriesData.rsrp,
+                        name: 'RSRP',
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        line: { color: '#ff7f0e' },
+                        hovertemplate: 'RSRP: %{y:.2f} dBm<br>Timestamp: %{x}<extra></extra>'
+                    },
+                    {
+                        x: timeSeriesData.timestamps,
+                        y: timeSeriesData.rsrq,
+                        name: 'RSRQ',
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        line: { color: '#2ca02c' },
+                        hovertemplate: 'RSRQ: %{y:.2f} dB<br>Timestamp: %{x}<extra></extra>'
+                    },
+                    {
+                        x: timeSeriesData.timestamps,
+                        y: timeSeriesData.sinr,
+                        name: 'SINR',
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        line: { color: '#d62728' },
+                        hovertemplate: 'SINR: %{y:.2f} dB<br>Timestamp: %{x}<extra></extra>'
+                    }
+                ];
+
+                const timeSeriesLayout = {
+                    title: 'Evolución de la Calidad de Señal',
+                    xaxis: { title: 'Tiempo' },
+                    yaxis: { title: 'Valor (dBm/dB)' },
+                    height: 500,
+                    showlegend: true,
+                    legend: {
+                        orientation: 'h',
+                        y: -0.2
+                    },
+                    hovermode: 'closest'
+                };
+
+                Plotly.newPlot('signalTimeSeries', timeSeriesTrace, timeSeriesLayout);
+
+                // Agregar evento de clic para mostrar el log
+                document.getElementById('signalTimeSeries').on('plotly_click', function(data) {
+                    const point = data.points[0];
+                    const timestamp = point.x;
+                    const index = timeSeriesData.timestamps.indexOf(timestamp);
+                    
+                    // Buscar el log correspondiente al timestamp
+                    const logDetails = document.getElementById('logDetails');
+                    const logContent = document.getElementById('logContent');
+                    
+                    // Aquí deberías tener acceso al log original
+                    // Por ahora, mostraremos un mensaje de ejemplo
+                    logContent.textContent = `Log para timestamp ${timestamp}:\n` +
+                        `RSSI: ${timeSeriesData.rssi[index].toFixed(2)} dBm\n` +
+                        `RSRP: ${timeSeriesData.rsrp[index].toFixed(2)} dBm\n` +
+                        `RSRQ: ${timeSeriesData.rsrq[index].toFixed(2)} dB\n` +
+                        `SINR: ${timeSeriesData.sinr[index].toFixed(2)} dB`;
+                    
+                    logDetails.style.display = 'block';
+                });
+            }
+
+            // Radar de Calidad de Señal
+            if (hasProperty(report, 'signal_quality')) {
+                const radarData = [{
+                    type: 'scatterpolar',
+                    r: [
+                        // Normalizar RSSI: Excelente > -65, Pobre < -85
+                        Math.min(Math.max((report.signal_quality.rssi.mean - (-85)) / (20) * 100, 0), 100),
+                        // Normalizar RSRP: Excelente > -80, Pobre < -100
+                        Math.min(Math.max((report.signal_quality.rsrp.mean - (-100)) / (20) * 100, 0), 100),
+                        // Normalizar RSRQ: Excelente > -10, Pobre < -20
+                        Math.min(Math.max((report.signal_quality.rsrq.mean - (-20)) / (10) * 100, 0), 100),
+                        // Normalizar SINR: Excelente > 13, Pobre < 0
+                        Math.min(Math.max((report.signal_quality.sinr.mean - 0) / (13) * 100, 0), 100)
+                    ],
+                    theta: ['RSSI', 'RSRP', 'RSRQ', 'SINR'],
+                    fill: 'toself',
+                    name: 'Calidad de Señal Normalizada',
+                    line: { color: '#1f77b4' }
+                },
+                {
+                    type: 'scatterpolar',
+                    r: [100, 100, 100, 100],  // Línea de referencia para excelente
+                    theta: ['RSSI', 'RSRP', 'RSRQ', 'SINR'],
+                    fill: 'toself',
+                    name: 'Excelente',
+                    line: { color: '#2ca02c' },
+                    fillcolor: 'rgba(44, 160, 44, 0.1)'  // Verde transparente
+                },
+                {
+                    type: 'scatterpolar',
+                    r: [75, 75, 75, 75],  // Línea de referencia para bueno
+                    theta: ['RSSI', 'RSRP', 'RSRQ', 'SINR'],
+                    fill: 'toself',
+                    name: 'Bueno',
+                    line: { color: '#ff7f0e' },
+                    fillcolor: 'rgba(255, 127, 14, 0.1)'  // Naranjo transparente
+                },
+                {
+                    type: 'scatterpolar',
+                    r: [50, 50, 50, 50],  // Línea de referencia para regular
+                    theta: ['RSSI', 'RSRP', 'RSRQ', 'SINR'],
+                    fill: 'toself',
+                    name: 'Regular',
+                    line: { color: '#ffd700' },
+                    fillcolor: 'rgba(255, 215, 0, 0.1)'  // Amarillo transparente
+                }];
+
+                Plotly.newPlot('signalRadar', radarData, {
+                    polar: {
+                        radialaxis: {
+                            visible: true,
+                            range: [0, 100],  // Escala normalizada de 0 a 100
+                            ticktext: ['0%', '25%', '50%', '75%', '100%'],
+                            tickvals: [0, 25, 50, 75, 100]
+                        }
+                    },
+                    showlegend: true,
+                    height: 450,
+                    margin: {
+                        t: 80,
+                        b: 40,
+                        l: 40,
+                        r: 40
+                    },
+                    legend: {
+                        orientation: 'h',
+                        y: 1.15,
+                        x: 0.5,
+                        xanchor: 'center'
+                    }
+                });
+            }
+            {% endif %}
+        }
+
+        // Funcionalidad para la tabla de mediciones
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if report %}
+            const report = {{ report|tojson|safe }};
+            const tableByMetrics = document.getElementById('measurementsTable');
+            const tableByColumns = document.getElementById('measurementsTableColumns');
+            const searchInput = document.getElementById('searchInput');
+            const qualityFilter = document.getElementById('qualityFilter');
+            const metricFilter = document.getElementById('metricFilter');
+            const resetButton = document.getElementById('resetFilters');
+            const exportButton = document.getElementById('exportCSV');
+            const toggleViewButton = document.getElementById('toggleView');
+
+            let currentView = 'metrics'; // 'metrics' o 'columns'
+
+            // Función para cambiar entre vistas
+            function toggleView() {
+                if (currentView === 'metrics') {
+                    tableByMetrics.style.display = 'none';
+                    tableByColumns.style.display = '';
+                    currentView = 'columns';
+                    toggleViewButton.innerHTML = '<i class="bi bi-list"></i> Vista por Métricas';
+                } else {
+                    tableByMetrics.style.display = '';
+                    tableByColumns.style.display = 'none';
+                    currentView = 'metrics';
+                    toggleViewButton.innerHTML = '<i class="bi bi-table"></i> Vista por Columnas';
+                }
+                // Aplicar filtros a la vista actual
+                filterTable();
+            }
+
+            // Función para filtrar la tabla
+            function filterTable() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const selectedQuality = qualityFilter.value;
+                const selectedMetric = metricFilter.value;
+
+                if (currentView === 'metrics') {
+                    const rows = tableByMetrics.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+                    for (let row of rows) {
+                        const timestamp = row.cells[0].textContent.toLowerCase();
+                        const metric = row.cells[1].textContent;
+                        const quality = row.cells[3].textContent.trim();
+
+                        const matchesSearch = timestamp.includes(searchTerm);
+                        const matchesQuality = !selectedQuality || quality === selectedQuality;
+                        const matchesMetric = !selectedMetric || metric === selectedMetric;
+
+                        row.style.display = matchesSearch && matchesQuality && matchesMetric ? '' : 'none';
+                    }
+                } else {
+                    const rows = tableByColumns.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+                    for (let row of rows) {
+                        const timestamp = row.cells[0].textContent.toLowerCase();
+                        const matchesSearch = timestamp.includes(searchTerm);
+                        
+                        // Para la vista de columnas, verificamos la calidad de cada métrica
+                        const rssiBadge = row.cells[1].querySelector('.badge');
+                        const rsrpBadge = row.cells[2].querySelector('.badge');
+                        const rsrqBadge = row.cells[3].querySelector('.badge');
+                        const sinrBadge = row.cells[4].querySelector('.badge');
+
+                        const rssiQuality = rssiBadge.classList.contains('bg-success') ? 'Excelente' :
+                                          rssiBadge.classList.contains('bg-primary') ? 'Bueno' :
+                                          rssiBadge.classList.contains('bg-warning') ? 'Regular' : 'Pobre';
+
+                        const rsrpQuality = rsrpBadge.classList.contains('bg-success') ? 'Excelente' :
+                                          rsrpBadge.classList.contains('bg-primary') ? 'Bueno' :
+                                          rsrpBadge.classList.contains('bg-warning') ? 'Regular' : 'Pobre';
+
+                        const rsrqQuality = rsrqBadge.classList.contains('bg-success') ? 'Excelente' :
+                                          rsrqBadge.classList.contains('bg-primary') ? 'Bueno' :
+                                          rsrqBadge.classList.contains('bg-warning') ? 'Regular' : 'Pobre';
+
+                        const sinrQuality = sinrBadge.classList.contains('bg-success') ? 'Excelente' :
+                                          sinrBadge.classList.contains('bg-primary') ? 'Bueno' :
+                                          sinrBadge.classList.contains('bg-warning') ? 'Regular' : 'Pobre';
+
+                        const matchesQuality = !selectedQuality || 
+                            rssiQuality === selectedQuality || 
+                            rsrpQuality === selectedQuality || 
+                            rsrqQuality === selectedQuality || 
+                            sinrQuality === selectedQuality;
+
+                        const matchesMetric = !selectedMetric || 
+                            (selectedMetric === 'RSSI' && rssiBadge) ||
+                            (selectedMetric === 'RSRP' && rsrpBadge) ||
+                            (selectedMetric === 'RSRQ' && rsrqBadge) ||
+                            (selectedMetric === 'SINR' && sinrBadge);
+
+                        row.style.display = matchesSearch && matchesQuality && matchesMetric ? '' : 'none';
+                    }
+                }
+            }
+
+            // Función para exportar a CSV
+            function exportToCSV() {
+                const table = currentView === 'metrics' ? tableByMetrics : tableByColumns;
+                const rows = Array.from(table.getElementsByTagName('tbody')[0].getElementsByTagName('tr'));
+                const visibleRows = rows.filter(row => row.style.display !== 'none');
+                
+                let headers, csvContent;
+                
+                if (currentView === 'metrics') {
+                    headers = ['Timestamp', 'Métrica', 'Valor', 'Calidad'];
+                    csvContent = [
+                        headers.join(','),
+                        ...visibleRows.map(row => {
+                            const cells = Array.from(row.cells);
+                            return cells.map(cell => {
+                                const text = cell.textContent.replace(/,/g, ';').trim();
+                                return `"${text}"`;
+                            }).join(',');
+                        })
+                    ].join('\n');
+                } else {
+                    headers = [
+                        'Timestamp',
+                        'RSSI (dBm)', 'Calidad RSSI',
+                        'RSRP (dBm)', 'Calidad RSRP',
+                        'RSRQ (dB)', 'Calidad RSRQ',
+                        'SINR (dB)', 'Calidad SINR'
+                    ];
+                    csvContent = [
+                        headers.join(','),
+                        ...visibleRows.map(row => {
+                            const cells = Array.from(row.cells);
+                            const timestamp = cells[0].textContent.trim();
+                            
+                            // Obtener valores y calidades de cada métrica
+                            const rssiBadge = cells[1].querySelector('.badge');
+                            const rsrpBadge = cells[2].querySelector('.badge');
+                            const rsrqBadge = cells[3].querySelector('.badge');
+                            const sinrBadge = cells[4].querySelector('.badge');
+
+                            const getQuality = (badge) => {
+                                if (badge.classList.contains('bg-success')) return 'Excelente';
+                                if (badge.classList.contains('bg-primary')) return 'Bueno';
+                                if (badge.classList.contains('bg-warning')) return 'Regular';
+                                return 'Pobre';
+                            };
+
+                            const values = [
+                                `"${timestamp}"`,
+                                `"${rssiBadge.textContent.trim()}"`,
+                                `"${getQuality(rssiBadge)}"`,
+                                `"${rsrpBadge.textContent.trim()}"`,
+                                `"${getQuality(rsrpBadge)}"`,
+                                `"${rsrqBadge.textContent.trim()}"`,
+                                `"${getQuality(rsrqBadge)}"`,
+                                `"${sinrBadge.textContent.trim()}"`,
+                                `"${getQuality(sinrBadge)}"`
+                            ];
+
+                            return values.join(',');
+                        })
+                    ].join('\n');
+                }
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'mediciones_conectividad.csv');
+                link.style.visibility = 'hidden';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            // Event listeners
+            searchInput.addEventListener('input', filterTable);
+            qualityFilter.addEventListener('change', filterTable);
+            metricFilter.addEventListener('change', filterTable);
+            resetButton.addEventListener('click', function() {
+                searchInput.value = '';
+                qualityFilter.value = '';
+                metricFilter.value = '';
+                filterTable();
+            });
+            exportButton.addEventListener('click', exportToCSV);
+            toggleViewButton.addEventListener('click', toggleView);
+
+            // Inicializar la tabla
+            filterTable();
+            {% endif %}
+        });
+
+        // Renderizar los gráficos cuando el documento esté listo
+        document.addEventListener('DOMContentLoaded', renderGraphs);
+    </script>
+
+    <!-- Footer -->
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container text-center">
+            <a href="https://github.com/NicoRiquelmeCTI/telit-logs-analyzer" target="_blank" class="text-decoration-none">
+                <i class="bi bi-github" style="font-size: 1.5rem;"></i>
+                <span class="ms-2">Hecho con 😴 por Nico Riquelme</span>
+            </a>
+        </div>
+    </footer>
+</body>
+</html> 
